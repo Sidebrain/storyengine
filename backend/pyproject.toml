@@ -1,7 +1,7 @@
 [project]
-name = "tamagotchi"
+name = "storyengine"
 version = "0.0.1"
-description = "Tamagotchi backend"
+description = "Story generator"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

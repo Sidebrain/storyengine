@@ -1651,7 +1651,7 @@ wheels = [
 ]
 
 [[package]]
-name = "tamagotchi"
+name = "storyengine"
 version = "0.0.1"
 source = { virtual = "." }
 dependencies = [
