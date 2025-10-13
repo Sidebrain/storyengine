@@ -1,11 +1,14 @@
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from loguru import logger
+
+if TYPE_CHECKING:
+    from socketio import AsyncServer  # type: ignore[import-untyped]
 
 from core.sockets.types.envelope import Actor, Envelope
 from core.sockets.types.message import Message
 
-from .. import async_openai_client, sio
+from .. import async_openai_client
 
 logger = logger.bind(name=__name__)
 
@@ -19,7 +22,8 @@ async def stream_chunks_openai(
     stream_id: str,
     actor: Actor,
     model: MODELS,
-):
+    sio: "AsyncServer",
+) -> str:
     kwargs: dict[str, Any] = {}
     if model == "gpt-5":
         kwargs["reasoning_effort"] = "high"
@@ -31,11 +35,13 @@ async def stream_chunks_openai(
         stream=True,
         **kwargs,
     )
+    accumulated_content = ""
 
     seq = 0
     async for chunk in stream:
         seq += 1
         if chunk.choices[0].delta.content is not None:
+            accumulated_content += chunk.choices[0].delta.content
             envelope_to_send = Envelope(
                 request_id=request_id,
                 stream_id=stream_id,
@@ -71,3 +77,4 @@ async def stream_chunks_openai(
                 envelope_to_send.model_dump_json(),
                 to=sid,
             )
+    return accumulated_content

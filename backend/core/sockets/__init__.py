@@ -11,6 +11,9 @@ instructor_client = instructor.client.from_openai(async_openai_client)
 
 logger = logger.bind(name=__name__)
 
+# for type annotation
+AsyncServer = socketio.AsyncServer
+
 sio = socketio.AsyncServer(
     cors_allowed_origins="*",
     async_mode="asgi",

@@ -37,4 +37,4 @@ async def handle_chat_stream_start(
     envelope: dict,
 ) -> str:
     assistant_actor = AssistantActor()
-    return assistant_actor.handle_stream_start(sid, envelope, AssistantRequest)
+    return assistant_actor.handle_stream_start(sid, envelope, AssistantRequest, sio)

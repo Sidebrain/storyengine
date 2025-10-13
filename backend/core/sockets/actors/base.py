@@ -1,14 +1,19 @@
 import asyncio
 import uuid
 from abc import ABC, abstractmethod
-from typing import Generic, Literal, Protocol, Type, TypeVar
+from typing import TYPE_CHECKING, Generic, Literal, Protocol, Type, TypeVar
 
+from loguru import logger
 from pydantic import BaseModel, ValidationError
 
 from core.sockets.types.envelope import AckFail, AckOk, Actor, Envelope, Error
 from core.sockets.types.message import Message
 
+if TYPE_CHECKING:
+    from socketio import AsyncServer  # type: ignore[import-untyped]
+
 MODEL_TYPE = Literal["gpt-4o", "gpt-5"]
+logger = logger.bind(name=__name__)
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -22,6 +27,7 @@ class StreamChunks(Protocol):
         stream_id: str,
         actor: Actor,
         model: MODEL_TYPE,
+        sio: "AsyncServer",
     ) -> None: ...
 
 
@@ -36,7 +42,9 @@ class BaseActor(ABC, Generic[T]):
     @abstractmethod
     def prepare_messages(self, validated_request: T) -> list[Message]: ...
 
-    def handle_stream_start(self, sid: str, envelope: dict, data_type: Type[T]) -> str:
+    def handle_stream_start(
+        self, sid: str, envelope: dict, data_type: Type[T], sio: "AsyncServer"
+    ) -> str:
         try:
             validated_envelope = Envelope[data_type].model_validate(envelope)  # type: ignore
 
@@ -70,6 +78,7 @@ class BaseActor(ABC, Generic[T]):
                 stream_id,
                 actor=self.actor_name,
                 model=self.model,
+                sio=sio,
             )
         )
 
