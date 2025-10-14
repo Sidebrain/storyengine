@@ -16,6 +16,7 @@ import {
   sendChatMessage,
   sendClaudeMessage,
   sendCodeMessage,
+  sendDirectorMessage,
   sendWriterMessage,
 } from "../socket/messageSendHandlers";
 import type { MediaManager } from "@/audio/services/mediaManager";
@@ -32,6 +33,7 @@ interface AppContextType {
   handleCodeSendClick: () => Promise<void>;
   handleWriterSendClick: () => Promise<void>;
   handleClaudeSendClick: () => Promise<void>;
+  handleDirectorSendClick: () => Promise<void>;
   isConnected: boolean;
   emit: (event: string, data?: unknown) => void;
   socket: Socket | null;
@@ -80,6 +82,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     [createMessageHandler]
   );
 
+  const handleDirectorSendClick = useCallback(
+    () => createMessageHandler(sendDirectorMessage)(),
+    [createMessageHandler]
+  );
+
   const handleWriterSendClick = useCallback(
     () => createMessageHandler(sendWriterMessage)(),
     [createMessageHandler]
@@ -115,6 +122,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         handleWriterSendClick,
         handleClaudeSendClick,
         handleInputSendClick,
+        handleDirectorSendClick,
         isConnected,
         emit,
         socket,

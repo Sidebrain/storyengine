@@ -1,3 +1,4 @@
+import uuid
 from typing import TYPE_CHECKING, Any, Literal
 
 from loguru import logger
@@ -13,6 +14,65 @@ from .. import async_openai_client
 logger = logger.bind(name=__name__)
 
 MODELS = Literal["gpt-4o", "gpt-5"]
+
+
+async def stream_chunks_static_text(
+    sid: str,
+    text: str,
+    actor: Actor,
+    sio: "AsyncServer",
+) -> str:
+    stream_id, request_id = str(uuid.uuid4()), str(uuid.uuid4())
+    text_chunks = text.split("\n")
+    start_envelope = Envelope(
+        request_id=request_id,
+        stream_id=stream_id,
+        seq=0,
+        direction="s2c",
+        actor=actor,
+        action="stream",
+        modifier="start",
+        data={"delta": "start"},
+    )
+    await sio.emit(
+        f"s2c.{actor}.stream.start",
+        start_envelope.model_dump_json(),
+        to=sid,
+    )
+    for seq, chunk in enumerate(text_chunks):
+        envelope_to_send = Envelope(
+            request_id=request_id,
+            stream_id=stream_id,
+            seq=seq,
+            direction="s2c",
+            actor=actor,
+            action="stream",
+            modifier="chunk",
+            data={
+                "delta": chunk,
+            },
+        )
+        await sio.emit(
+            f"s2c.{actor}.stream.chunk",
+            envelope_to_send.model_dump_json(),
+            to=sid,
+        )
+    end_envelope = Envelope(
+        request_id=request_id,
+        stream_id=stream_id,
+        seq=len(text_chunks),
+        direction="s2c",
+        actor=actor,
+        action="stream",
+        modifier="end",
+        data={"finish_reason": "stop"},
+    )
+    await sio.emit(
+        f"s2c.{actor}.stream.end",
+        end_envelope.model_dump_json(),
+        to=sid,
+    )
+    return text
 
 
 async def stream_chunks_openai(

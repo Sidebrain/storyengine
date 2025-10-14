@@ -12,6 +12,7 @@ export const MessageInput = () => {
     inputText,
     setInputText,
     handleInputSendClick,
+    handleDirectorSendClick,
     mediaManager,
   } = useAppContext();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -68,9 +69,10 @@ export const MessageInput = () => {
 
   const handleSubmit = useCallback(() => {
     if (isSubmitEnabled) {
-      handleInputSendClick();
+      // handleInputSendClick();
+      handleDirectorSendClick();
     }
-  }, [isSubmitEnabled, handleInputSendClick]);
+  }, [isSubmitEnabled, handleDirectorSendClick]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {

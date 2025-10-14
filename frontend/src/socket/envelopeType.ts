@@ -4,6 +4,8 @@ export const ACTORS = [
   "coder",
   "writer",
   "claude",
+  "scriptwriter",
+  "director",
 ] as const;
 export type Actor = (typeof ACTORS)[number];
 export type Action = "stream";

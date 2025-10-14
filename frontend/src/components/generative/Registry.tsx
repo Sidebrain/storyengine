@@ -37,4 +37,16 @@ export const actorRegistry: Record<
     messageSelector: (allMessages) =>
       allMessages.filter((m) => m.type === "coder"),
   },
+  scriptwriter: {
+    label: "scriptwriter",
+    component: WriterMessage,
+    messageSelector: (allMessages) =>
+      allMessages.filter((m) => m.type === "scriptwriter"),
+  },
+  director: {
+    label: "director",
+    component: WriterMessage,
+    messageSelector: (allMessages) =>
+      allMessages.filter((m) => m.type === "director"),
+  },
 };

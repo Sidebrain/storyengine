@@ -161,3 +161,23 @@ export const sendClaudeMessage = async (
     handleStreamAck(ack, "claude", createStreamMessage)
   );
 };
+
+export const sendDirectorMessage = async (
+  inputText: string,
+  setInputText: (text: string) => void,
+  emit: EmitCallback,
+  addMessage: AddMessage,
+  _humanAreaMessages: TypedMessage[],
+  _createStreamMessage: CreateStreamMessage
+) => {
+  if (!inputText.trim()) return;
+
+  const humanMessage = createHumanMessage(inputText);
+  addMessage(humanMessage);
+
+  const data = { prompt: inputText };
+
+  const envelope = createStreamStartEnvelope("director", data);
+  setInputText("");
+  emit(`c2s.director.stream.start`, envelope);
+};

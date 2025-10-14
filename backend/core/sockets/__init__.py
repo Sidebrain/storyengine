@@ -25,7 +25,11 @@ active_connections: dict[str, dict] = {}
 
 def register_sio_handlers() -> None:
     logger.info("Registering socket handlers...")
+    from core.event_queue import initialize_event_subscribers
+
     from . import handlers  # noqa: F401
-    from .actors import assistant, claude_sdk  # noqa: F401
+    from .actors import assistant, claude_sdk, director, scriptwriter  # noqa: F401
+
+    initialize_event_subscribers()
 
     logger.info("Socket handlers registered successfully")
