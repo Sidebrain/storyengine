@@ -2,7 +2,11 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import io from "socket.io-client";
 import { BACKEND_URL } from "@/constants";
 import { Socket } from "socket.io-client";
-import type { Actor, Envelope } from "@/socket/envelopeType";
+import {
+  ACTORS,
+  type Actor,
+  type Envelope,
+} from "@/socket/envelopeType";
 import { useMessageStore } from "@/store/useMessageStore";
 
 export const useSocket = () => {
@@ -21,8 +25,14 @@ export const useSocket = () => {
   );
 
   const onStreamChunk = useCallback(
-    (envelope: Envelope<{ delta: string }>) => {
-      updateStreamingMessage(envelope);
+    (rawMessage: string) => {
+      try {
+        const envelope: Envelope<{ delta: string }> =
+          JSON.parse(rawMessage);
+        updateStreamingMessage(envelope);
+      } catch (error) {
+        console.error("Error parsing stream chunk:", error, rawMessage);
+      }
     },
     [updateStreamingMessage]
   );
@@ -32,6 +42,31 @@ export const useSocket = () => {
       removeStreamingActor(actor);
     },
     [removeStreamingActor]
+  );
+
+  const onStreamStart = useCallback(
+    (rawMessage: string) => {
+      try {
+        const parsed_envelope = JSON.parse(rawMessage) as Envelope<{
+          delta: "start";
+        }>;
+
+        if (!parsed_envelope.streamId || !parsed_envelope.requestId) {
+          throw new Error(
+            `Stream ID ${parsed_envelope.streamId} or request ID ${parsed_envelope.requestId} is missing`
+          );
+        }
+
+        createStreamMessage(
+          parsed_envelope.streamId,
+          parsed_envelope.requestId,
+          parsed_envelope.actor
+        );
+      } catch (error) {
+        console.error("Error parsing stream start:", error, rawMessage);
+      }
+    },
+    [createStreamMessage]
   );
 
   const emit = useCallback(
@@ -62,122 +97,26 @@ export const useSocket = () => {
       setIsConnected(false);
     });
 
-    socket.on("s2c.assistant.stream.chunk", (rawMessage: string) => {
-      try {
-        const envelope: Envelope<{ delta: string }> =
-          JSON.parse(rawMessage);
-        onStreamChunk(envelope);
-      } catch (error) {
-        console.error("Error parsing stream chunk:", error, rawMessage);
-      }
-    });
+    for (const actor of ACTORS) {
+      socket.on(`s2c.${actor}.stream.chunk`, (rawMessage: string) => {
+        onStreamChunk(rawMessage);
+      });
 
-    socket.on("s2c.coder.stream.chunk", (rawMessage: string) => {
-      try {
-        const envelope: Envelope<{ delta: string }> =
-          JSON.parse(rawMessage);
-        onStreamChunk(envelope);
-      } catch (error) {
-        console.error("Error parsing stream chunk:", error, rawMessage);
-      }
-    });
+      socket.on(`s2c.${actor}.stream.end`, () => {
+        onStreamEnd(actor);
+      });
 
-    socket.on("s2c.writer.stream.chunk", (rawMessage: string) => {
-      try {
-        const envelope: Envelope<{ delta: string }> =
-          JSON.parse(rawMessage);
-        onStreamChunk(envelope);
-      } catch (error) {
-        console.error("Error parsing stream chunk:", error, rawMessage);
-      }
-    });
-
-    socket.on("s2c.claude.stream.chunk", (rawMessage: string) => {
-      try {
-        const envelope: Envelope<{ delta: string }> =
-          JSON.parse(rawMessage);
-        onStreamChunk(envelope);
-      } catch (error) {
-        console.error("Error parsing stream chunk:", error, rawMessage);
-      }
-    });
-
-    socket.on("s2c.assistant.stream.end", () => {
-      onStreamEnd("assistant");
-    });
-
-    socket.on("s2c.coder.stream.end", () => {
-      onStreamEnd("coder");
-    });
-
-    socket.on("s2c.writer.stream.end", () => {
-      onStreamEnd("writer");
-    });
-
-    socket.on("s2c.claude.stream.end", (rawMessage: string) => {
-      try {
-        const parsed_message = JSON.parse(rawMessage);
-        console.log("claude stream end", parsed_message);
-      } catch (error) {
-        console.error(
-          "Error parsing claude stream end:",
-          error,
-          rawMessage
-        );
-      }
-
-      onStreamEnd("claude");
-    });
-
-    // when server starts
-    socket.on(
-      "s2c.writer.stream.start",
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (rawMessage: string, callback: (response: any) => void) => {
-        try {
-          const parsed_envelope: Envelope<{
-            delta: "start";
-          }> = JSON.parse(rawMessage);
-
-          if (!parsed_envelope.streamId || !parsed_envelope.requestId) {
-            throw new Error(
-              `Stream ID ${parsed_envelope.streamId} or request ID ${parsed_envelope.requestId} is missing`
-            );
-          }
-
-          createStreamMessage(
-            parsed_envelope.streamId,
-            parsed_envelope.requestId,
-            "writer"
-          );
-          console.log("created stream message", parsed_envelope);
-
-          // ✅ Send acknowledgement using the callback
-          callback({
-            ok: true,
-            streamId: parsed_envelope.streamId,
-            requestId: parsed_envelope.requestId,
-          });
-        } catch (error) {
-          console.error(
-            "Error parsing stream start:",
-            error,
-            rawMessage
-          );
-          callback({
-            ok: false,
-            error: "Failed to parse stream start",
-          });
-        }
-      }
-    );
+      socket.on(`s2c.${actor}.stream.start`, (rawMessage: string) => {
+        onStreamStart(rawMessage);
+      });
+    }
 
     socketRef.current = socket;
 
     return () => {
       socket.disconnect();
     };
-  }, [onStreamChunk, onStreamEnd, createStreamMessage]);
+  }, [onStreamChunk, onStreamEnd, createStreamMessage, onStreamStart]);
 
   return {
     isConnected,

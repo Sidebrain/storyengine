@@ -1,9 +1,11 @@
 export type Direction = "c2s" | "s2c";
-export type Actor =
-  | "assistant"
-  | "coder"
-  | "writer"
-  | "claude"
+export const ACTORS = [
+  "assistant",
+  "coder",
+  "writer",
+  "claude",
+] as const;
+export type Actor = (typeof ACTORS)[number];
 export type Action = "stream";
 export type Modifier = "start" | "chunk" | "end";
 
